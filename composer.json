@@ -24,7 +24,6 @@
     "require": {
         "php": ">=5.4.0",
       "yiisoft/yii2": "~2.0.0",
-        "badbreze/yii2-widget-fileinput": ">=2.0",
         "himiklab/yii2-colorbox-widget": "*",
         "yiisoft/yii2-jui": "^2.0",
         "yurkinx/yii2-image": "*"
@@ -33,13 +32,7 @@
         "phpunit/phpunit": "~4.0",
         "phpunit/dbunit": "~1.0"
     },
-    "repositories":
-    [
-        {
-            "type": "vcs",
-            "url": "https://github.com/pshirmanov/yii2-widget-fileinput.git"
-        }
-    ],
+    "repositories":[],
     "autoload": {
         "psr-4": {
             "file\\": "src"
