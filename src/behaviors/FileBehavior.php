@@ -1,4 +1,5 @@
 <?php
+
 namespace file\behaviors;
 
 use file\models\File;
@@ -10,7 +11,6 @@ use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\web\Application;
 use yii\web\UploadedFile;
-use file\models\UploadForm;
 
 /**
  * Class FileBehavior
@@ -30,17 +30,12 @@ class FileBehavior extends Behavior
         $events = [
             ActiveRecord::EVENT_AFTER_DELETE => 'deleteUploads',
             ActiveRecord::EVENT_AFTER_INSERT => 'saveUploads',
-            ActiveRecord::EVENT_AFTER_UPDATE => 'saveUploads',
-            ActiveRecord::EVENT_BEFORE_VALIDATE => 'evalAttributes'
+            ActiveRecord::EVENT_AFTER_UPDATE => 'saveUploads'
         ];
 
         return $events;
     }
 
-    /**
-     * Iterate files and save by attribute
-     * @param $event
-     */
     public function saveUploads($event)
     {
         $attributes = $this->getFileAttributes();
@@ -48,33 +43,6 @@ class FileBehavior extends Behavior
         if (!empty($attributes)) {
             foreach ($attributes as $attribute) {
                 $this->saveAttributeUploads($attribute);
-            }
-        }
-    }
-
-    /**
-     * When update save files before the validation
-     * @param $event
-     * @return bool|void
-     */
-    public function evalAttributes($event)
-    {
-        $attributes = $this->getFileAttributes();
-
-        if (!empty($attributes)) {
-            foreach ($attributes as $attribute) {
-                $files = UploadedFile::getInstancesByName($attribute);
-                if (!empty($files)) {
-                    if(count($files) > 1) {
-                        $this->owner->{$attribute} = [];
-
-                        foreach ($files as $file) {
-                            $this->owner->{$attribute}[] = $file;
-                        }
-                    } else {
-                        $this->owner->{$attribute} = reset($files);
-                    }
-                }
             }
         }
     }
@@ -91,13 +59,11 @@ class FileBehavior extends Behavior
         $fileAttributes = [];
 
         //has file validator?
-        $fileValidators = $this->getFileValidator($validators);
+        $fileValidator = $this->getFileValidator($validators);
 
-        foreach($fileValidators as $fileValidator) {
-            if (!empty($fileValidator)) {
-                foreach ($fileValidator->attributes as $attribute) {
-                    $fileAttributes[] = $attribute;
-                }
+        if (!empty($fileValidator)) {
+            foreach ($fileValidator->attributes as $attribute) {
+                $fileAttributes[] = $attribute;
             }
         }
 
@@ -111,51 +77,41 @@ class FileBehavior extends Behavior
      */
     public function getFileValidator($validators)
     {
-        $fileValidators = [];
+        $attributeValidators = $this->owner->getActiveValidators();
 
         foreach ($validators as $validator) {
             $classname = $validator::className();
 
             if ($classname == 'yii\validators\FileValidator') {
-                $fileValidators[] = $validator;
+                return $validator;
             }
         }
 
-        return $fileValidators;
+        return null;
     }
 
     protected function saveAttributeUploads($attribute)
     {
-        $files = UploadedFile::getInstancesByName($attribute);
 
+        $debugArr = [];
+
+        $files = UploadedFile::getInstancesByName($attribute);
         if (!empty($files)) {
             foreach ($files as $file) {
                 if (!$file->saveAs($this->getModule()->getUserDirPath($attribute) . $file->name)) {
-                    continue;
+                    throw new \Exception(\Yii::t('yii', 'File upload failed.'));
                 }
             }
         }
 
-        if ($this->owner->isNewRecord) {
-            return TRUE;
-        }
-
         $userTempDir = $this->getModule()->getUserDirPath($attribute);
-
         foreach (FileHelper::findFiles($userTempDir) as $file) {
+            $debugArr[] = $file;
             if (!$this->getModule()->attachFile($file, $this->owner, $attribute)) {
                 throw new \Exception(\Yii::t('yii', 'File upload failed.'));
             }
         }
-
-        //Getting query
-        $getter = 'get' . ucfirst($attribute);
-        $activeQuery = $this->owner->{$getter}();
-
-        //Eval attribute
-        $this->owner->{$attribute} = $activeQuery->multiple ? $activeQuery->all() : $activeQuery->one();
-
-        //rmdir($userTempDir);
+        rmdir($userTempDir);
 
 //        $debug = print_r($debugArr, true);
 //        file_put_contents('/tmp/files.txt', $debug);
@@ -181,7 +137,7 @@ class FileBehavior extends Behavior
         $fileQuery = File::find()
             ->where(
                 [
-                    'itemId' => $this->owner->getAttribute('id'),
+                    'item_id' => $this->owner->getAttribute('id'),
                     'model' => $this->getModule()->getClass($this->owner)
                 ]
             );
@@ -208,16 +164,16 @@ class FileBehavior extends Behavior
      * @param string $sort
      * @return \yii\db\ActiveQuery[]
      */
-    public function hasMultipleFiles($attribute = 'file', $sort = 'id')
+    public function getFilesByAttributeName($attribute = 'file', $sort = 'id')
     {
         $fileQuery = File::find()
             ->where([
-                'itemId' => $this->owner->id,
+                'item_id' => $this->owner->id,
                 'model' => $this->getModule()->getClass($this->owner),
                 'attribute' => $attribute,
             ]);
 
-        $fileQuery->orderBy([$sort => SORT_ASC]);
+        $fileQuery->orderBy([$sort => SORT_DESC]);
 
         //Single result mode
         $fileQuery->multiple = true;
@@ -226,30 +182,9 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * DEPRECATED
-     */
-    public function getFilesByAttributeName($attribute = 'file', $sort = 'id')
-    {
-        return $this->hasMultipleFiles($attribute, $sort);
-    }
-
-    /**
      * @param string $attribute
      * @param string $sort
      * @return \yii\db\ActiveQuery[]
-     */
-    public function hasOneFile($attribute = 'file', $sort = 'id')
-    {
-        $query = $this->hasMultipleFiles($attribute, $sort);
-
-        //Single result mode
-        $query->multiple = false;
-
-        return $query;
-    }
-
-    /**
-     * DEPRECATED
      */
     public function getSingleFileByAttributeName($attribute = 'file', $sort = 'id')
     {
@@ -258,7 +193,7 @@ class FileBehavior extends Behavior
         //Single result mode
         $query->multiple = false;
 
-        return $this->hasOneFile($attribute, $sort);
+        return $query;
     }
 
     /**
@@ -268,10 +203,10 @@ class FileBehavior extends Behavior
     {
         $files = File::find()
             ->where([
-                'itemId' => $this->owner->getAttribute('id'),
+                'item_id' => $this->owner->getAttribute('id'),
                 'model' => $this->getModule()->getClass($this->owner)
             ])
-            ->orderBy('is_main DESC, sort DESC')
+            ->orderBy('is_main DESC, sort ASC')
             ->all();
         if (count($files) > 0) {
             array_shift($files);
@@ -330,7 +265,7 @@ class FileBehavior extends Behavior
             }
         }
 
-        $files = $this->getFilesByAttributeName($attribute)->all();
+        $files = $this->getFilesByAttributeName($attribute, 'sort')->all();
 
         foreach ($files as $file) {
             if (substr($file->mime, 0, 5) === 'image') {
@@ -399,7 +334,7 @@ class FileBehavior extends Behavior
             ];
         }
 
-        $files = $this->getFilesByAttributeName($attribute)->all();
+        $files = $this->getFilesByAttributeName($attribute, 'sort')->all();
 
         foreach ($files as $index => $file) {
             $initialPreviewConfig[] = [
@@ -408,6 +343,7 @@ class FileBehavior extends Behavior
                 'url' => Url::toRoute(['/file/file/delete',
                     'id' => $file->id
                 ]),
+                'key' => $file->id,
             ];
         }
 
@@ -418,7 +354,7 @@ class FileBehavior extends Behavior
     {
         $file = File::find()
             ->where([
-                'itemId' => $this->owner->getAttribute('id'),
+                'item_id' => $this->owner->getAttribute('id'),
                 'model' => $this->getModule()->getClass($this->owner)
             ])
             ->orderBy('is_main DESC')
@@ -435,7 +371,7 @@ class FileBehavior extends Behavior
     {
         $count = File::find()
             ->where([
-                'itemId' => $this->owner->getAttribute('id'),
+                'item_id' => $this->owner->getAttribute('id'),
                 'model' => $this->getModule()->getClass($this->owner)
             ])
             ->count();

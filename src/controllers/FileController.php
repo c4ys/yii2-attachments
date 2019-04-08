@@ -6,12 +6,8 @@ use file\models\File;
 use file\models\UploadForm;
 use file\FileModuleTrait;
 use yii\db\ActiveRecord;
-use yii\helpers\ArrayHelper;
 use yii\helpers\FileHelper;
 use yii\helpers\Url;
-use yii\image\drivers\Image_GD;
-use yii\image\drivers\Image_Imagick;
-use yii\image\ImageDriver;
 use yii\web\Controller;
 use yii\web\Response;
 use yii\web\UploadedFile;
@@ -45,7 +41,7 @@ class FileController extends Controller
     {
         $getData = Yii::$app->request->get();
         $attribute = $getData['attribute'];
-        $modelFrom = $getData['model'];
+        $modelFrom = urldecode($getData['model']);
 
         /**
          * @var $modelSpecific ActiveRecord
@@ -57,17 +53,14 @@ class FileController extends Controller
             'attributeSpecific' => $attribute
         ]);
 
-        $model->file = UploadedFile::getInstances($modelSpecific, $attribute);
-        //pr($model->file, 'filemodel');
-        //Attribute Validations
-        $attributeValidation = $modelSpecific->getActiveValidators($attribute);
+        $model->file = UploadedFile::getInstances($model, 'file');
 
         //File validator
-        $modelFileValidator = reset($attributeValidation);
+        $modelFileValidator = $modelSpecific->getActiveValidators($attribute);
+        $modelFileValidator = reset($modelFileValidator);
 
         if ($modelFileValidator->maxFiles == 1) {
-            $fileInstance = UploadedFile::getInstances($modelSpecific, $attribute);
-
+            $fileInstance = UploadedFile::getInstances($model, 'file');
             $model->file = reset($fileInstance);
         }
 
@@ -90,109 +83,22 @@ class FileController extends Controller
         } else {
             Yii::$app->response->format = Response::FORMAT_JSON;
             return [
-                'error' => $model->getErrors(),
-                'ioca' => $model->getErrors()
+                'error' => $model->getErrors('file')
             ];
         }
     }
 
-    public function actionDownload($id, $hash, $size = 'original')
+    public function actionDownload($id)
     {
         /** @var File $file */
-        $file = File::findOne(['id' => $id, 'hash' => $hash]);
+        $file = File::findOne(['id' => $id]);
 
         $filePath = $this->getModule()->getFilesDirPath($file->hash) . DIRECTORY_SEPARATOR . $file->hash . '.' . $file->type;
 
-        if (file_exists($filePath)) {
-            if ($size == 'original' || !in_array($file->type, ['jpg', 'jpeg', 'png', 'gif'])) {
-                return \Yii::$app->response->sendFile($filePath, "$file->name.$file->type");
-            } else {
-                $moduleConfig = Yii::$app->getModule('file')->config;
-                $crops = $moduleConfig['crops'] ?: [];
-
-                if (array_key_exists($size, $crops)) {
-                    return $this->getCroppedImage($file, $crops[$size]);
-                } else {
-                    throw new \Exception('Size not found - ' . $size);
-                }
-            }
-        } else
+        if (file_exists($filePath))
+            return \Yii::$app->response->sendFile($filePath, "$file->hash.$file->type");
+        else
             return false;
-    }
-
-    public function getCroppedImage($file, $cropSettings)
-    {
-        $fileDir = $this->getModule()->getFilesDirPath($file->hash) . DIRECTORY_SEPARATOR;
-        $filePath = $fileDir . $file->hash . '.' . $file->type;
-        $cropPath = $fileDir . $file->hash . '.' . $cropSettings['width'] . '.' . $cropSettings['height'] . '.' . $file->type;
-
-        if (file_exists($cropPath)) {
-            //return \Yii::$app->response->sendFile($cropPath, "$file->name.$file->type");
-        }
-
-        //Crop and return
-        $cropper = new ImageDriver();
-
-        $configStack = [
-            'width' => null,
-            'height' => null,
-            'master' => null,
-            'crop_width' => null,
-            'crop_height' => null,
-            'crop_width' => null,
-            'crop_height' => null,
-            'crop_offset_x' => null,
-            'crop_offset_y' => null,
-            'rotate_degrees' => null,
-            'rotate_degrees' => null,
-            'refrect_height' => null,
-            'refrect_opacity' => null,
-            'refrect_fade_in' => null,
-            'flip_direction' => null,
-            'flip_direction' => null,
-            'bg_color' => null,
-            'bg_color' => null,
-            'bg_opacity' => null,
-            'quality' => null
-        ];
-
-        $cropConfig = ArrayHelper::merge($configStack, $cropSettings);
-
-        /**
-         * Extract All settings
-         * Eg.
-         * $cr_width
-         * $cr_height
-         * $cr_quality
-         */
-        extract($cropConfig, EXTR_PREFIX_ALL, 'cr');
-
-        /**
-         * @var $image Image_GD | Image_Imagick
-         */
-        $image = $cropper->load($filePath);
-
-        $image->resize($cr_width, $cr_height, $cr_master);
-
-        if ($cr_crop_width && $cr_crop_height)
-            $image->crop($cr_crop_width, $cr_crop_height, $cr_crop_offset_x, $cr_crop_offset_y);
-
-        if ($cr_rotate_degrees)
-            $image->rotate($cr_rotate_degrees);
-
-        if ($cr_refrect_height)
-            $image->reflection($cr_refrect_height, $cr_refrect_opacity, $cr_refrect_fade_in);
-
-        if ($cr_flip_direction)
-            $image->flip($cr_flip_direction);
-
-        if ($cr_bg_color)
-            $image->background($cr_bg_color, $cr_bg_opacity);
-
-        $image->save($cropPath, $cr_quality);
-
-        //Return the new image
-        return \Yii::$app->response->sendFile($cropPath, "$file->name.$file->type");
     }
 
     public function actionDelete($id)
@@ -200,17 +106,9 @@ class FileController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         if ($this->getModule()->detachFile($id)) {
-            if (Yii::$app->request->isAjax) {
-                return true;
-            } else {
-                return $this->goBack((!empty(Yii::$app->request->referrer) ? Yii::$app->request->referrer : null));
-            }
+            return true;
         } else {
-            if (Yii::$app->request->isAjax) {
-                return false;
-            } else {
-                return $this->goBack((!empty(Yii::$app->request->referrer) ? Yii::$app->request->referrer : null));
-            }
+            return false;
         }
     }
 
@@ -248,10 +146,8 @@ class FileController extends Controller
         $model = new $modelClass();
         $behaviours = $model->behaviors();
         $fileBehaviour = $behaviours['fileBehavior'];
-
-        if (!empty($fileBehaviour['permissions'])) {
-            $permission = $fileBehaviour['permissions'][$file->attribute];
-
+        $permission = isset($fileBehaviour['permissions']) ? $fileBehaviour['permissions'][$file->attribute] : null;
+        if (!empty($permission)) {
             if (!Yii::$app->user->can($permission)) {
                 $access = false;
             }
@@ -269,7 +165,7 @@ class FileController extends Controller
         if ($file) {
             $status = Yii::$app->request->post('value', 'false');
             if ($status === 'true') {
-                File::updateAll(['is_main' => 0], ['model' => $file->model, 'itemId' => $file->itemId]);
+                File::updateAll(['is_main' => 0], ['model' => $file->model, 'item_id' => $file->item_id]);
                 $file->is_main = File::MAIN;
             } else {
                 $file->is_main = File::NOT_MAIN;
@@ -287,7 +183,7 @@ class FileController extends Controller
         /** @var File $file */
         $file = File::find()->where([
             'model' => $model,
-            'itemId' => $id,
+            'item_id' => $id,
             'is_main' => File::MAIN,
         ])->one();
         if ($file) {

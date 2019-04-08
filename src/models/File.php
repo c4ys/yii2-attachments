@@ -6,22 +6,25 @@ use file\FileModuleTrait;
 use Yii;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
+use yii\db\Expression;
 use yii\helpers\Url;
+use yii\validators\DateValidator;
 
 /**
  * This is the model class for table "file".
  *
- * @property integer $id
- * @property string $name
- * @property string $model
- * @property integer $itemId
- * @property string $hash
- * @property integer $size
- * @property string $type
- * @property string $mime
- * @property integer $is_main
- * @property integer $date_upload
- * @property integer $sort
+ * @property int $id
+ * @property string $model 模型
+ * @property string $attribute 属性
+ * @property int $item_id 实体ID
+ * @property string $type 类型
+ * @property string $name 文件名
+ * @property string $hash HASH
+ * @property string $mime MIME
+ * @property int $is_main 主图
+ * @property string $created_at 创建时间
+ * @property int $sort 顺序
+ * @property int $size 大小
  */
 class File extends ActiveRecord
 {
@@ -38,12 +41,15 @@ class File extends ActiveRecord
         return \Yii::$app->getModule('file')->tableName;
     }
 
-    public function behaviors() {
+    public function behaviors()
+    {
         return [
-            [
-                'class'              => TimestampBehavior::className(),
-                'createdAtAttribute' => 'date_upload',
-                'updatedAtAttribute' => false,
+            'timestamp' => [
+                'class' => TimestampBehavior::className(),
+                'attributes' => [
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at'],
+                ],
+                'value' => new Expression('NOW()'),
             ],
         ];
     }
@@ -54,9 +60,13 @@ class File extends ActiveRecord
     public function rules()
     {
         return [
-            [['model', 'attribute', 'itemId', 'hash', 'size', 'type', 'mime'], 'required'],
-            [['itemId', 'size', 'is_main', 'date_upload', 'sort'], 'integer'],
-            [['name', 'model', 'hash', 'type', 'mime'], 'string', 'max' => 255]
+            [['model', 'attribute', 'item_id', 'type', 'hash', 'mime'], 'required'],
+            [['item_id', 'is_main', 'sort', 'size'], 'integer'],
+            ['created_at', 'date', 'type' => DateValidator::TYPE_DATETIME],
+            [['model', 'attribute', 'type', 'mime'], 'string', 'max' => 40],
+            [['name'], 'string', 'max' => 200],
+            [['hash'], 'string', 'max' => 64],
+            [['hash'], 'unique'],
         ];
     }
 
@@ -67,23 +77,23 @@ class File extends ActiveRecord
     {
         return [
             'id' => 'ID',
-            'name' => 'Name',
-            'model' => 'Model',
-            'attribute' => 'Attribute',
-            'itemId' => 'Item ID',
-            'hash' => 'Hash',
-            'size' => 'Size',
-            'type' => 'Type',
-            'mime' => 'Mime',
-            'is_main' => 'Is main',
-            'date_upload' => 'Date upload',
-            'sort' => 'Sort',
+            'model' => '模型',
+            'attribute' => '属性',
+            'item_id' => '实体ID',
+            'type' => '类型',
+            'name' => '文件名',
+            'hash' => 'HASH',
+            'mime' => 'MIME',
+            'is_main' => '主图',
+            'created_at' => '创建时间',
+            'sort' => '顺序',
+            'size' => '大小',
         ];
     }
 
-    public function getUrl($size = 'original')
+    public function getUrl()
     {
-        return Url::to(['/file/file/download', 'id' => $this->id, 'hash' => $this->hash, 'size' => $size]);
+        return Url::to(['/file/file/download', 'id' => $this->id]);
     }
 
     public function getWebUrl()

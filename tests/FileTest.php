@@ -20,7 +20,7 @@ class FileTest extends TestCase
         $this->assertArrayHasKey('name', $file->errors);
         $this->assertArrayHasKey('model', $file->errors);
         $this->assertArrayHasKey('attribute', $file->errors);
-        $this->assertArrayHasKey('itemId', $file->errors);
+        $this->assertArrayHasKey('item_id', $file->errors);
         $this->assertArrayHasKey('hash', $file->errors);
         $this->assertArrayHasKey('size', $file->errors);
         $this->assertArrayHasKey('type', $file->errors);

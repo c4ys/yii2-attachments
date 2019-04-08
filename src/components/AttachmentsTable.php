@@ -8,7 +8,6 @@ use file\models\File;
 use Yii;
 use yii\base\InvalidConfigException;
 use yii\bootstrap\Widget;
-use yii\data\ActiveDataProvider;
 use yii\data\ArrayDataProvider;
 use yii\grid\GridView;
 use yii\helpers\Html;
@@ -20,7 +19,7 @@ class AttachmentsTable extends Widget
     /** @var FileActiveRecord */
     public $model;
 
-    public $attribute;
+    public $attribute = 'file';
 
     public $tableOptions = ['class' => 'table table-striped table-bordered table-condensed'];
 
@@ -42,36 +41,14 @@ class AttachmentsTable extends Widget
                 $hasFileBehavior = true;
             }
         }
-
         if (!$hasFileBehavior) {
             throw new InvalidConfigException("The behavior {FileBehavior} has not been attached to the model.");
         }
 
         Url::remember(Url::current());
 
-        if(!empty($this->attribute)) {
-            return $this->drawWidget($this->attribute);
-        } else {
-            $widgets = null;
-            $attributes = $this->model->getFileAttributes();
-
-            if (!empty($attributes)) {
-                foreach ($attributes as $attribute) {
-                    $widgets .= $this->drawWidget($attribute);
-                }
-            }
-
-            return $widgets;
-        }
-    }
-
-    public function drawWidget($attribute = null) {
-        if(!$attribute) {
-            return null;
-        }
-
         return GridView::widget([
-            'dataProvider' => new ActiveDataProvider(['query' => $this->model->hasMultipleFiles($attribute)]),
+            'dataProvider' => new ArrayDataProvider(['allModels' => $this->model->getFilesByAttributeName($this->attribute)]),
             'layout' => '{items}',
             'tableOptions' => $this->tableOptions,
             'columns' => [

@@ -1,5 +1,6 @@
 <?php
 
+namespace file\migrations;
 use yii\db\Migration;
 use yii\db\Schema;
 
@@ -7,27 +8,25 @@ class m150127_040544_add_attachments extends Migration
 {
     public function up()
     {
-        $this->createTable('attach_file', [
-            'id' => Schema::TYPE_PK,
-            'name' => Schema::TYPE_STRING . ' NOT NULL',
-            'model' => Schema::TYPE_STRING . ' NOT NULL',
-            'attribute' => Schema::TYPE_STRING . ' NOT NULL',
-            'itemId' => Schema::TYPE_INTEGER . ' NOT NULL',
-            'hash' => Schema::TYPE_STRING . ' NOT NULL',
-            'size' => Schema::TYPE_INTEGER . ' NOT NULL',
-            'type' => Schema::TYPE_STRING . ' NOT NULL',
-            'mime' => Schema::TYPE_STRING . ' NOT NULL',
-            'is_main' => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
-            'date_upload' => Schema::TYPE_INTEGER . ' DEFAULT NULL',
-            'sort' => Schema::TYPE_INTEGER . ' NOT NULL DEFAULT 1'
+        $this->createTable('{{%file}}', [
+            'id' => $this->primaryKey(),
+            'model' => $this->string(40)->notNull()->comment('模型'),
+            'attribute' => $this->string(40)->notNull()->comment('属性'),
+            'item_id' => $this->integer()->notNull()->comment('实体ID'),
+            'type' => $this->string(40)->notNull()->comment('类型'),
+            'name' => $this->string(200)->notNull()->defaultValue('')->comment('文件名'),
+            'hash' => $this->string(64)->notNull()->comment('HASH')->unique(),
+            'mime' => $this->string(40)->notNull()->comment('MIME'),
+            'is_main' => $this->boolean()->notNull()->defaultValue(0)->comment('主图'),
+            'created_at' => $this->dateTime()->notNull()->comment('创建时间'),
+            'sort' => $this->integer()->notNull()->defaultValue(0)->comment('顺序'),
+            'size'=>$this->integer()->notNull()->defaultValue(0)->comment('大小'),
         ]);
-
-        $this->createIndex('file_model', 'attach_file', 'model');
-        $this->createIndex('file_item_id', 'attach_file', 'itemId');
+        $this->createIndex('model_attribute_item_id', 'file', ['model','attribute','item_id']);
     }
 
     public function down()
     {
-        $this->dropTable('attach_file');
+        $this->dropTable('{{%file}}');
     }
 }

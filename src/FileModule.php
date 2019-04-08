@@ -26,9 +26,7 @@ class FileModule extends Module
 
     public $rules = [];
 
-    public $tableName = 'attach_file';
-
-    public $config = [];
+    public $tableName = 'file';
 
     public function init()
     {
@@ -37,10 +35,6 @@ class FileModule extends Module
         if (empty($this->storePath) || empty($this->tempPath)) {
             throw new Exception('Setup {storePath} and {tempPath} in module properties');
         }
-
-        //Configuration
-        $config = require(__DIR__ . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'config.php');
-        \Yii::configure($this, ArrayHelper::merge($config, $this));
 
         $this->rules = ArrayHelper::merge(['maxFiles' => 3], $this->rules);
         $this->defaultRoute = 'file';
@@ -170,7 +164,7 @@ class FileModule extends Module
 
         $file->name = $fileName;
         $file->model = $this->getClass($owner);
-        $file->itemId = $owner->id;
+        $file->item_id = $owner->id;
         $file->hash = $fileHash;
         $file->size = filesize($filePath);
         $file->type = $fileType;
@@ -197,9 +191,7 @@ class FileModule extends Module
         /** @var File $file */
         $file = File::findOne(['id' => $id]);
         $filePath = $this->getFilesDirPath($file->hash) . DIRECTORY_SEPARATOR . $file->hash . '.' . $file->type;
-
-        if(file_exists($filePath))
-            unlink($filePath);
+        unlink($filePath);
 
         $file->delete();
     }

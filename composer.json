@@ -1,10 +1,10 @@
 {
     "name": "c4ys/yii2-attachments",
-    "description": "Extension for file uploading and attaching to the models",
+    "description": "yii2 文件上传扩展",
     "type": "yii2-extension",
     "keywords": ["yii2","extension","attachment","file","upload"],
     "license": "BSD-4-Clause",
-    "homepage": "http://www.divenock.com/projects/yii2-attachments",
+    "homepage": "https://github.com/c4ys/yii2-attachments",
     "authors": [
         {
             "name": "Alimzhan Abuov aka Nemmo",
@@ -22,17 +22,16 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": ">=5.4.0",
-      "yiisoft/yii2": "~2.0.0",
+        "php": ">=7.0.0",
+        "yiisoft/yii2": "~2.0.0",
+        "kartik-v/yii2-widget-fileinput": "~1.0.0",
         "himiklab/yii2-colorbox-widget": "*",
-        "yiisoft/yii2-jui": "^2.0",
-        "yurkinx/yii2-image": "*"
+        "yiisoft/yii2-jui": "^2.0"
     },
     "require-dev": {
         "phpunit/phpunit": "~4.0",
         "phpunit/dbunit": "~1.0"
     },
-    "repositories":[],
     "autoload": {
         "psr-4": {
             "file\\": "src"
