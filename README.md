@@ -25,7 +25,7 @@ You can see the demo on the [krajee](http://plugins.krajee.com/file-input/demo) 
     和
     
     ```
-    "c4ys/yii2-attachments": ">=1.2.0"
+    "c4ys/yii2-attachments": ">=2.0.0"
     ```
 	
 	to the require section of your `composer.json` file.
