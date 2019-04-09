@@ -25,10 +25,10 @@ You can see the demo on the [krajee](http://plugins.krajee.com/file-input/demo) 
     和
     
     ```
-    "c4ys/yii2-attachments": ">=2.0.0"
+    "c4ys/yii2-attachments": "devmaster"
     ```
 	
-	to the require section of your `composer.json` file.
+	
 
 2.  添加模块配置
 	
