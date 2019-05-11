@@ -37,7 +37,7 @@ You can see the demo on the [krajee](http://plugins.krajee.com/file-input/demo) 
 	'modules' => [
 		'file' => [
 			'class' => 'file\FileModule',
-			'webDir' => 'files',
+			'webUrl' => '/upload/',
 			'tempPath' => '@common/uploads/temp',
 			'storePath' => '@common/uploads/store',
 			'rules' => [ 

@@ -38,9 +38,6 @@ class FileBehavior extends Behavior
 
     public function saveUploads($event)
     {
-        if (!isset(\Yii::$app->session)) {
-            return;
-        }
         $attributes = $this->getFileAttributes();
 
         if (!empty($attributes)) {
