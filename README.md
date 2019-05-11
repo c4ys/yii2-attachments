@@ -26,7 +26,7 @@ You can see the demo on the [krajee](http://plugins.krajee.com/file-input/demo) 
     和
     
     ```
-    "c4ys/yii2-attachments": "dev-master"
+    "c4ys/yii2-attachments": "^2.2.0"
     ```
 	
 	
