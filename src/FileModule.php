@@ -12,11 +12,7 @@ use yii\web\Controller;
 
 class FileModule extends Module
 {
-    /**
-     * Папка, в которую прокинут линк для прямого доступа по http
-     * @var string
-     */
-    public $webDir = 'files';
+    public $webUrl = '/upload/';
 
     public $controllerNamespace = 'file\controllers';
 
@@ -75,7 +71,7 @@ class FileModule extends Module
      */
     public function getFilesDirPath($fileHash, $useStorePath = true)
     {
-        if($useStorePath){
+        if ($useStorePath) {
             $path = $this->getStorePath() . DIRECTORY_SEPARATOR . $this->getSubDirs($fileHash);
         } else {
             $path = DIRECTORY_SEPARATOR . $this->getSubDirs($fileHash);
@@ -136,7 +132,7 @@ class FileModule extends Module
      * @throws \Exception
      * @throws \yii\base\InvalidConfigException
      */
-    public function attachFile($filePath, $owner, $attribute='file')
+    public function attachFile($filePath, $owner, $attribute = 'file')
     {
         if (!$owner->id) {
             throw new \Exception('Owner must have id when you attach file');
@@ -172,14 +168,14 @@ class FileModule extends Module
         $file->attribute = $attribute;
 
         if ($file->save()) {
-            unlink($filePath);
+            @unlink($filePath);
             return $file;
         } else {
             if (count($file->getErrors()) > 0) {
                 $errors = $file->getErrors();
                 $ar = array_shift($errors);
 
-                unlink($newFilePath);
+                @unlink($newFilePath);
                 throw new \Exception(array_shift($ar));
             }
             return false;
@@ -191,7 +187,7 @@ class FileModule extends Module
         /** @var File $file */
         $file = File::findOne(['id' => $id]);
         $filePath = $this->getFilesDirPath($file->hash) . DIRECTORY_SEPARATOR . $file->hash . '.' . $file->type;
-        unlink($filePath);
+        @unlink($filePath);
 
         $file->delete();
     }
@@ -203,7 +199,7 @@ class FileModule extends Module
     public function getWebPath(File $file)
     {
         $fileName = $file->hash . '.' . $file->type;
-        $webPath = '/' . $this->webDir . '/' . $this->getSubDirs($file->hash) . '/' . $fileName;
+        $webPath = $this->webUrl . $this->getSubDirs($file->hash) . '/' . $fileName;
         return $webPath;
     }
 }

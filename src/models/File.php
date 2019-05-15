@@ -98,7 +98,7 @@ class File extends ActiveRecord
 
     public function getWebUrl()
     {
-        return str_replace('@webroot', '', Yii::$app->modules['file']->storePath . "/" . \Yii::$app->modules['file']->getSubDirs($this->hash) . DIRECTORY_SEPARATOR . $this->hash . '.' . $this->type);
+        return $this->getModule()->getWebPath($this);
     }
 
     public function getPath()
